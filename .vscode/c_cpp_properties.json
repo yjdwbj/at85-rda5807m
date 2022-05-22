@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        {
+            "name": "AVR",
+            "intelliSenseMode": "${default}",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "compilerPath": "/usr/bin/avr-gcc",
+            "includePath": [],
+            "compilerArgs": [
+                "-mmcu=attiny85",
+                "-DF_CPU=8000000UL"
+            ]
+        }
+    ],
+    "version": 4
+}

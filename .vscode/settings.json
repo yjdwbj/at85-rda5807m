@@ -1,0 +1,18 @@
+{
+    "AVR.source.compiler": "/usr/bin/avr-gcc",
+    "AVR.programmer.tool": "/usr/bin/avrdude",
+    "AVR.device.type": "attiny85",
+    "AVR.device.frequency": 1000000,
+    "AVR.source.libraries": [],
+    "AVR.programmer.type": "c232hm",
+    "AVR.programmer.port": "/dev/ttyUSB0",
+    "AVR.programmer.rate": 19200,
+    "files.associations": {
+        "delay.h": "c",
+        "io.h": "c",
+        "iotn85.h": "c",
+        "iom328.h": "c",
+        "iom328p.h": "c",
+        "interrupt.h": "c"
+    }
+}
