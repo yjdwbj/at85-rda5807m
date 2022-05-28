@@ -134,10 +134,16 @@ void set_bass_boost(bool switchOn) {
 }
 
 void set_volume(uint8_t newVolume) {
+    if(newVolume < 0) return;
     newVolume &= RADIO_REG_VOL_VOL;
     _reg_mem[RADIO_REG_VOL] &= (~RADIO_REG_VOL_VOL);
     _reg_mem[RADIO_REG_VOL] |= newVolume;
     _write_register(RADIO_REG_VOL, _reg_mem[RADIO_REG_VOL]);
+}
+
+uint8_t get_volume()
+{
+    return _reg_mem[RADIO_REG_VOL];
 }
 
 void _write_register(uint8_t reg, uint16_t value) {
@@ -151,8 +157,10 @@ void _write_register(uint8_t reg, uint16_t value) {
 
 uint16_t _read_register() {
     i2c_start(I2C_SEQ, USI_READ);
-    uint8_t hb = i2c_read(0);
-    uint8_t lb = i2c_read(0);
+    uint8_t hb = i2c_read();
+    uint8_t lb = i2c_read();
     i2c_stop();
+    SDA_PIN_OUTPUT();
+    SCL_PIN_OUTPUT();
     return ((hb << 8) & lb);
 }

@@ -21,43 +21,36 @@
 
 #include "at85_i2c.h"
 
-void i2c_setup()
-{
+void i2c_setup() {
 
 #if defined(SOFT_IIC)
 
-  /* set SDA,SCL,DC to be output */
-  DDRB = _BV(SCL_PIN)| _BV(SDA_PIN) | _BV(DC_PIN);
+    /* set SDA,SCL,DC to be output */
+    DDRB = _BV(SCL_PIN) | _BV(SDA_PIN) | _BV(DC_PIN);
 
-  /* Outputs, clock hold, and start detector disabled. must be quit from SPI mode  */
-  USICR = 0;
-  USISR = 0;
+    /* Outputs, clock hold, and start detector disabled. must be quit from SPI mode  */
+    USICR = 0;
+    USISR = 0;
 #else
-  DDRB  = _BV(SDA_PIN) | _BV(SCL_PIN);
-  SDA_PIN_HIGH();
-  SCL_PIN_HIGH();
-  USICR = _BV(USIWM1) |  _BV(USIWM0)|  /* Choosing I2C aka two wire mode */
-          _BV(USICLK);   /* Software stobe as counter clock source */
-  USISR = _BV(USISIF) | _BV(USIOIF) | _BV(USIPF) | _BV(USIDC);
-  USIDR = 0xff;
+    DDRB = _BV(SDA_PIN) | _BV(SCL_PIN);
+    SDA_PIN_HIGH();
+    SCL_PIN_HIGH();
+    USICR = _BV(USIWM1) | _BV(USIWM0) | /* Choosing I2C aka two wire mode */
+            _BV(USICLK);                /* Software stobe as counter clock source */
+    USISR = _BV(USISIF) | _BV(USIOIF) | _BV(USIPF) | _BV(USIDC);
+    USIDR = 0xff;
 #endif
-  USICR &= ~_BV(USIWM0);
+    USICR &= ~_BV(USIWM0);
 }
 
-
-uint8_t i2c_write( uint8_t data)
-{
+uint8_t i2c_write(uint8_t data) {
 #if defined(SOFT_IIC)
     uint8_t i;
-    for(i = 0; i < 8; i++)
-    {
+    for (i = 0; i < 8; i++) {
         SCL_PIN_LOW();
-        if (data & 0x80)
-        {
+        if (data & 0x80) {
             SDA_PIN_HIGH();
-        }
-        else
-        {
+        } else {
             SDA_PIN_LOW();
         }
         SCL_PIN_HIGH();
@@ -65,42 +58,37 @@ uint8_t i2c_write( uint8_t data)
     }
 #else
     SCL_PIN_LOW();
-    USIDR = data;   /* set data */
+    USIDR = data; /* set data */
 
     i2c_transfer(USI_DATA);
     SDA_PIN_INPUT();
 
     /* read ACK from slave */
 
-    if (i2c_transfer(USI_ACK) & 0x01) return 1;
+    if (i2c_transfer(USI_ACK) & 0x01)
+        return 1;
 #endif
     return 0;
 }
 
-uint8_t i2c_read(uint8_t mode)
-{
+uint8_t i2c_read() {
     /* read a byte */
     SDA_PIN_INPUT();
-    uint8_t data = i2c_transfer(USI_DATA);
-    if(mode == NOTLAST)
-    {
-        USIDR = 0x7f;
-    } else {
-        USIDR = 0xff;
+    uint8_t data = 0;
+    while (USISIF == 0) {
+        data = USIDR;
+        USISR |= (1 << USIOIF); // Clear overflow flag
     }
-
-    i2c_transfer(USI_ACK);
     return data;
 }
 
-
-uint8_t i2c_start(uint8_t address,uint8_t mode)
-{
+uint8_t i2c_start(uint8_t address, uint8_t mode) {
     SCL_PIN_HIGH(); // Release SCL
-    while(!SCL_PIN_READ());
+    while (!SCL_PIN_READ())
+        ;
     SDA_PIN_HIGH();
-    while (!SDA_PIN_READ());
-
+    while (!SDA_PIN_READ())
+        ;
 
     /* generate start condition */
 
@@ -116,12 +104,12 @@ uint8_t i2c_start(uint8_t address,uint8_t mode)
 
     SDA_PIN_INPUT(); /* set SDA input for read ACK */
 
-    if(i2c_transfer(USI_ACK) & 0x01) return 1;
+    if (i2c_transfer(USI_ACK) & 0x01)
+        return 1;
     return 0;
 }
 
-void i2c_stop(void)
-{
+void i2c_stop(void) {
     SDA_PIN_LOW();
     SCL_PIN_HIGH();  /** Release SCL */
 
@@ -131,36 +119,35 @@ void i2c_stop(void)
     _delay_us(LOW_PERIOD);
     SDA_PIN_HIGH(); /** Release SDA */
     _delay_us(HIGH_PERIOD);
+    // USISR = 0x00; // Counter value
 }
 
-uint8_t i2c_transfer(uint8_t mode)
-{
+uint8_t i2c_transfer(uint8_t mode) {
     uint8_t data;
-    if(mode == USI_ACK)
-    {
+    if (mode == USI_ACK) {
         USISR = 0xfe;
-    }else if(mode == USI_DATA)
-    {
+    } else if (mode == USI_DATA) {
         USISR = 0xf0;
     }
 
-    data = _BV(USIWM1) |  /* Set USI in Two-wire mode */
-           _BV(USICS1) |_BV(USICLK) | /* Software clock strobe as source. */
-           _BV(USITC);         /* Toggle Clock Port. */
+    data = _BV(USIWM1) |               /* Set USI in Two-wire mode */
+           _BV(USICS1) | _BV(USICLK) | /* Software clock strobe as source. */
+           _BV(USITC);                 /* Toggle Clock Port. */
 
     do {
 
-        USICR = data;              /* Generate positive SCL edge. */
-        while (!SCL_PIN_READ());   /* Wait for SCL to go high. */
+        USICR = data; /* Generate positive SCL edge. */
+        while (!SCL_PIN_READ())
+            ; /* Wait for SCL to go high. */
         _delay_us(HIGH_PERIOD);
         USICR = data;
-        _delay_us(LOW_PERIOD);     /* Generate negative SCL edge. */
-  } while (!(USISR & 1<<USIOIF));  /* Check for transfer complete. */
+        _delay_us(LOW_PERIOD);        /* Generate negative SCL edge. */
+    } while (!(USISR & 1 << USIOIF)); /* Check for transfer complete. */
 
-  data = USIDR;              /* Read out data. */
-  USIDR = 0xFF;
-  SDA_PIN_HIGH();            /* Release SDA. */
-  SDA_PIN_OUTPUT();          /* Enable SDA as output. */
+    data = USIDR; /* Read out data. */
+    USIDR = 0xFF;
+    SDA_PIN_HIGH();   /* Release SDA. */
+    SDA_PIN_OUTPUT(); /* Enable SDA as output. */
 
-  return data;
+    return data;
 }

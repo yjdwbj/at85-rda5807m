@@ -46,6 +46,10 @@ typedef enum {
     BUF_NOT_READY
 } PulseBufferState;
 
+struct IR_data {
+    uint16_t addr;
+    uint16_t cmd;
+};
 
 static volatile PulseBufferState bufferState = BUF_NOT_READY;
 
