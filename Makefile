@@ -5,7 +5,7 @@ DEVICE      = attiny85
 CLOCK      = 8000000
 PROGRAMMER = -c 2232HIO # UM232H
 
-OBJECTS    = main.o at85_spi.o at85_ir.o at85_i2c.o  sh1106.o oled.o
+OBJECTS    = main.o at85_spi.o at85_ir.o at85_i2c.o  sh1106.o oled.o rda5807m.o
 # for ATTiny85
 # see http://www.engbedded.com/fusecalc/
 FUSES       = -U lfuse:w:0x62:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m

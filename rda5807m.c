@@ -3,6 +3,7 @@
 // https://tomeko.net/projects/RDA5807M_radio/index.php?lang=en
 // https://github.com/f5swb/RDA5807
 // https://github.com/mathertel/Radio
+// https://circuitdigest.com/microcontroller-projects/arduino-fm-radio-using-rda5807
 
 void init_fm(void) {
     _reg_mem[RADIO_REG_CHIPID] = 0x5807;
@@ -22,7 +23,19 @@ void init_fm(void) {
 }
 
 void set_band(RADIO_BAND newBand) {
-    _band = newBand == RADIO_BAND_FM ? RADIO_REG_CHAN_BAND_FM : RADIO_REG_CHAN_BAND_FMWORLD;
+
+    if (newBand == RADIO_BAND_FM) {
+        _freqLow = 8700;
+        _freqHigh = 10800;
+        _freqSteps = 10; // 20 in USA ???
+        _band = RADIO_REG_CHAN_BAND_FM;
+    } else if (newBand == RADIO_BAND_FMWORLD) {
+        _freqLow = 7600;
+        _freqHigh = 10800;
+        _freqSteps = 10;
+        _band = RADIO_REG_CHAN_BAND_FMWORLD;
+    }
+
     _band |= RADIO_REG_CHAN_SPACE_100;
     _reg_mem[RADIO_REG_CHAN] = _band;
     _write_register(RADIO_REG_CHAN, _reg_mem[RADIO_REG_CHAN]);
@@ -49,6 +62,14 @@ void set_frequency(RADIO_FREQ newF) {
 
     // adjust Volume
     _write_register(RADIO_REG_VOL, _reg_mem[RADIO_REG_VOL]);
+}
+
+RADIO_FREQ get_frequency(void) {
+    _reg_mem[RADIO_REG_RA] = _read_register();
+    uint16_t ch = _reg_mem[RADIO_REG_RA] & RADIO_REG_RA_NR;
+
+    _freq = _freqLow + (ch * 10); // assume 100 kHz spacing
+    return (_freq);
 }
 
 void seek_up(bool toNextSender) {
@@ -103,8 +124,7 @@ void set_mono(bool switchOn) {
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
 }
 
-void set_bass_boost(bool switchOn)
-{
+void set_bass_boost(bool switchOn) {
     if (switchOn) {
         _reg_mem[RADIO_REG_CTRL] |= (RADIO_REG_CTRL_BASS);
     } else {
@@ -113,8 +133,7 @@ void set_bass_boost(bool switchOn)
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
 }
 
-void set_volume(uint8_t newVolume)
-{
+void set_volume(uint8_t newVolume) {
     newVolume &= RADIO_REG_VOL_VOL;
     _reg_mem[RADIO_REG_VOL] &= (~RADIO_REG_VOL_VOL);
     _reg_mem[RADIO_REG_VOL] |= newVolume;
@@ -123,16 +142,17 @@ void set_volume(uint8_t newVolume)
 
 void _write_register(uint8_t reg, uint16_t value) {
     i2c_start(I2C_INDX, USI_WRITE);
-    i2c_write(0);
+    // i2c_write(0);
     i2c_write(reg);
     i2c_write(value >> 8);
     i2c_write(value & 0xff);
     i2c_stop();
 }
 
-uint16_t _read_register(uint8_t reg) {
-    i2c_start(I2C_SEQ, USI_WRITE);
+uint16_t _read_register() {
+    i2c_start(I2C_SEQ, USI_READ);
     uint8_t hb = i2c_read(0);
     uint8_t lb = i2c_read(0);
+    i2c_stop();
     return ((hb << 8) & lb);
 }

@@ -19,17 +19,36 @@
  *
  ********************************************************************************/
 
-#include "at85_i2c.h"
-#include "oled.h"
 #include "at85_ir.h"
+#include "oled.h"
+#include "rda5807m.h"
 #include <avr/io.h>
-
+#define LCD_BUFFER_SIZE 16
+extern uint8_t lcd_buffer[LCD_BUFFER_SIZE];
 
 int main(void) {
-    sei(); //  AVR Status Register, Bit 7 – I: Global Interrupt Enable
+
     oled_init();
     oled_clear();
+    sei(); //  AVR Status Register, Bit 7 – I: Global Interrupt Enable
     ir_bus_init();
+
+    cli();
+    _delay_ms(4000);
+    init_fm();
+    set_band(RADIO_BAND_FM);
+    set_frequency(8750);
+    set_volume(15);
+    set_mute(false);
+    set_mono(false);
+
+    // uint16_t value = get_frequency();
+    // sprintf(lcd_buffer, "%02d",99);
+    // cli();
+    oled_p8x16str(0, 4, lcd_buffer);
+    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+    sei();
+
     while (1) {
         ir_data_ready();
     }

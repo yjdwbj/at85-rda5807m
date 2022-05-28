@@ -91,8 +91,6 @@ void seek_down(bool toNextSender); // start seek mode downwards
 
 // ----- Supporting RDS for RADIO_BAND_FM and RADIO_BAND_FMWORLD
 
-void checkRDS();
-
 uint16_t _reg_mem[16];
 RADIO_BAND _band; ///< Last set band.
 RADIO_FREQ _freq; ///< Last set frequency.
@@ -102,6 +100,6 @@ RADIO_FREQ _freqHigh;  ///< Highest frequency of the current selected band.
 RADIO_FREQ _freqSteps; ///< Resolution of the tuner.
 void _write_register(uint8_t reg, uint16_t value);
 void _save_registers(void);
-uint16_t _read_register(uint8_t reg);
+uint16_t _read_register();
 
 #endif
