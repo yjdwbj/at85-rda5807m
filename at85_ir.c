@@ -19,9 +19,8 @@ static volatile IRCaptureState captureState = WAIT_STATE;
 
 #define LCD_BUFFER_SIZE 16
 uint8_t lcd_buffer[LCD_BUFFER_SIZE];
-
-IR_data IRData;
-uint8_t *IRdata = &IRData;
+uint8_t irdata[4] = {0, 0, 0, 0};
+IR_data *IRData = irdata;
 
 /**
  * Table 10-1. Reset and Interrupt Vectors
@@ -50,8 +49,9 @@ uint8_t *IRdata = &IRData;
 void ir_bus_init(void) {
     // DDRB &= ~_BV(PB2); //   IR data pin ,set input
     TCCR0A = 0;
+    TCCR0B = 0;
     MCUCR |= _BV(ISC01); // The falling edge of INT0 generates an interrupt request.
-    GIMSK |= _BV(INT0);  // External Interrupt Request 0
+    GIMSK |= _BV(INT0);  // External Interrupt Request 0, must give +5v power.
 }
 
 static uint8_t check_low_time(bool isLeading) {
@@ -133,11 +133,11 @@ ISR(INT0_vect) {
             break;
         }
         char index = bufferIndex / 8;
-        IRdata[index] >>= 1;
+        irdata[index] >>= 1;
         // Logical '0' – a 562.5µs pulse burst followed by a 562.5µs space, with a total transmit time of 1.125ms
         // Logical '1' – a 562.5µs pulse burst followed by a 1.6875ms space, with a total transmit time of 2.25ms
         if (countNum > 140)
-            IRdata[index] |= 0x80; // 140 * 8us = 1.12ms, greater than 1.12ms means logical '1'.
+            irdata[index] |= 0x80; // 140 * 8us = 1.12ms, greater than 1.12ms means logical '1'.
         if (bufferIndex++ >= BUFFER_SIZE) {
             captureState = FINAL_PULSE_STATE;
         }
@@ -150,33 +150,30 @@ ISR(INT0_vect) {
 bool ir_data_ready(void) {
     if (bufferState == BUF_READY) {
         cli(); // Disable INT0, prepare to LCD show string.
-        // USICR = 0x0;
+        oled_clear();
+        sprintf(lcd_buffer, "0x%x", IRData->cmd);
+        oled_p8x16str(0, 4, lcd_buffer);
+        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+        switch (IRData->cmd) {
+        case 0xfa05:
+            seek_up(true);
+            break;
+        case 0xfa02:
+            seek_down(true);
+            break;
+        case 0xe11e:
+            set_volume(get_volume() + 1);
+            break;
+        case 0xf50a:
+            set_volume(get_volume() - 1);
+            break;
+        default:
+            break;
+        }
+        sei();
         bufferIndex = 0;
         bufferState = BUF_NOT_READY;
         captureState = WAIT_STATE;
         repeatCode = false;
-        // GIMSK &= ~_BV(INT0); // Disable INT0, prepare to LCD show string.
-        oled_clear();
-        sprintf(lcd_buffer, "0x%2d:", IRData.cmd);
-        oled_p8x16str(0, 4, lcd_buffer);
-        // switch (IRData.cmd) {
-        // case 0xfa05:
-        //     seek_up(true);
-        //     break;
-        // case 0xfa02:
-        //     seek_down(true);
-        //     break;
-        // case 0xe11e:
-        //     set_volume(get_volume() + 1);
-        //     break;
-        // case 0xf50a:
-        //     set_volume(get_volume() - 1);
-        //     break;
-        // default:
-        //     break;
-        // }
-        sei();
-        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
-
     }
 }
