@@ -140,9 +140,12 @@ void set_volume(uint8_t newVolume) {
     _write_register(RADIO_REG_VOL, _reg_mem[RADIO_REG_VOL]);
 }
 
+uint8_t get_volume() {
+    return _reg_mem[RADIO_REG_VOL];
+}
+
 void _write_register(uint8_t reg, uint16_t value) {
     i2c_start(I2C_INDX, USI_WRITE);
-    // i2c_write(0);
     i2c_write(reg);
     i2c_write(value >> 8);
     i2c_write(value & 0xff);
@@ -151,8 +154,9 @@ void _write_register(uint8_t reg, uint16_t value) {
 
 uint16_t _read_register() {
     i2c_start(I2C_SEQ, USI_READ);
-    uint8_t hb = i2c_read(0);
-    uint8_t lb = i2c_read(0);
+    uint8_t hb = i2c_read();
+    uint8_t lb = i2c_read();
     i2c_stop();
+    SDA_PIN_OUTPUT();
     return ((hb << 8) & lb);
 }

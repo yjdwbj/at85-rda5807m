@@ -76,6 +76,7 @@ typedef enum {
 typedef uint16_t RADIO_FREQ;
 void init_fm(void);
 void set_volume(uint8_t newVolume);
+uint8_t get_volume();
 void set_bass_boost(bool switchOn);
 void set_mono(bool switchOn);
 void set_mute(bool switchOn);

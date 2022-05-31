@@ -77,19 +77,15 @@ uint8_t i2c_write( uint8_t data)
     return 0;
 }
 
-uint8_t i2c_read(uint8_t mode)
+uint8_t i2c_read(void)
 {
     /* read a byte */
     SDA_PIN_INPUT();
-    uint8_t data = i2c_transfer(USI_DATA);
-    if(mode == NOTLAST)
-    {
-        USIDR = 0x7f;
-    } else {
-        USIDR = 0xff;
+    uint8_t data = 0;
+    while (USISIF == 0) {
+        data = USIDR;
+        USISR |= (1 << USIOIF); // Clear overflow flag
     }
-
-    i2c_transfer(USI_ACK);
     return data;
 }
 

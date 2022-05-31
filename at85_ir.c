@@ -20,7 +20,8 @@ static volatile IRCaptureState captureState = WAIT_STATE;
 #define LCD_BUFFER_SIZE 16
 uint8_t lcd_buffer[LCD_BUFFER_SIZE];
 
-static volatile uint8_t IRdata[4] = {0, 0, 0, 0};
+IR_data IRData;
+uint8_t *IRdata = &IRData;
 
 /**
  * Table 10-1. Reset and Interrupt Vectors
@@ -92,7 +93,6 @@ ISR(INT0_vect) {
     switch (captureState) {
     // Waiting for next data
     case WAIT_STATE:
-        repeatCode = false;
         countNum = check_low_time(true);
         // check it is valid 9ms leading pulse burst,pulse tolerance greater than 8.5ms and less than 9.6ms.
         // 67 * 128us = 8.576ms, 75 * 128us = 9.6ms
@@ -106,7 +106,6 @@ ISR(INT0_vect) {
         } else if (countNum >= 32 && countNum <= 36) {
             // check it's valid 4.5ms space, 32 * 128us = 4.096ms, 36 * 128us = 4.608ms
             captureState = DATA_STATE;
-            repeatCode = false;
             bufferIndex = 0;
         }
         break;
@@ -149,15 +148,33 @@ ISR(INT0_vect) {
 }
 
 bool ir_data_ready(void) {
-    if (bufferState != BUF_NOT_READY) {
+    if (bufferState == BUF_READY) {
         cli(); // Disable INT0, prepare to LCD show string.
+        // USICR = 0x0;
         bufferIndex = 0;
         bufferState = BUF_NOT_READY;
         captureState = WAIT_STATE;
+        repeatCode = false;
         // GIMSK &= ~_BV(INT0); // Disable INT0, prepare to LCD show string.
         oled_clear();
-        sprintf(lcd_buffer, "%02x,%02x,%02x,%02x", IRdata[0], IRdata[1], IRdata[2], IRdata[3]);
+        sprintf(lcd_buffer, "0x%2d:", IRData.cmd);
         oled_p8x16str(0, 4, lcd_buffer);
+        // switch (IRData.cmd) {
+        // case 0xfa05:
+        //     seek_up(true);
+        //     break;
+        // case 0xfa02:
+        //     seek_down(true);
+        //     break;
+        // case 0xe11e:
+        //     set_volume(get_volume() + 1);
+        //     break;
+        // case 0xf50a:
+        //     set_volume(get_volume() - 1);
+        //     break;
+        // default:
+        //     break;
+        // }
         sei();
         memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
 
