@@ -48,7 +48,7 @@ uint8_t *irdata = &IRData;
 */
 
 void ir_bus_init(void) {
-    SCL_PIN_HIGH();
+    // SCL_PIN_HIGH();
     SREG |= _BV(7);
     TCCR0A = 0;
     MCUCR |= _BV(ISC01); // The falling edge of INT0 generates an interrupt request.
@@ -94,9 +94,6 @@ ISR(INT0_vect) {
     switch (captureState) {
     // Waiting for next data
     case WAIT_STATE:
-        repeatCode = false;
-        IRData.cmd = 0;
-        IRData.addr = 0;
         countNum = check_low_time(true);
         // check it is valid 9ms leading pulse burst,pulse tolerance greater than 8.5ms and less than 9.6ms.
         // 67 * 128us = 8.576ms, 75 * 128us = 9.6ms
@@ -153,6 +150,30 @@ ISR(INT0_vect) {
 }
 
 bool ir_data_ready(void) {
+    if(bufferState == BUF_READY)
+    {
+        sprintf(lcd_buffer, "%d", IRData.cmd);
+        cli();
+        oled_p8x16str(0, 4, lcd_buffer);
+        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+        switch (IRData.cmd) {
+        case 0xfa05:
+            seek_up(true);
+            break;
+        case 0xfa02:
+            seek_down(true);
+            break;
+        case 0xe11e:
+            set_volume(get_volume() + 1);
+            break;
+        case 0xf50a:
+            set_volume(get_volume() - 1);
+            break;
+        default:
+            break;
+        }
+        ir_set_standby();
+    }
     return bufferState;
 }
 
@@ -161,5 +182,6 @@ void ir_set_standby(void)
     bufferIndex = 0;
     captureState = WAIT_STATE;
     bufferState = BUF_NOT_READY;
+    repeatCode = false;
     sei();
 }

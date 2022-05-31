@@ -31,7 +31,7 @@ int main(void) {
     oled_init();
     oled_clear();
 
-    _delay_ms(500);
+    _delay_ms(800);
     init_fm();
     set_band(RADIO_BAND_FM);
     set_frequency(8750);
@@ -46,30 +46,7 @@ int main(void) {
     sei();
     ir_bus_init();
     while (1) {
-        if (ir_data_ready == BUF_NOT_READY)
-            continue;
-
-        sprintf(lcd_buffer, "%d", IRData.cmd);
-        cli();
-        oled_p8x16str(0, 4, lcd_buffer);
-        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
-        switch (IRData.cmd) {
-        case 0xfa05:
-            seek_up(true);
-            break;
-        case 0xfa02:
-            seek_down(true);
-            break;
-        case 0xe11e:
-            set_volume(get_volume() + 1);
-            break;
-        case 0xf50a:
-            set_volume(get_volume() - 1);
-            break;
-        default:
-            break;
-        }
-        ir_set_standby();
+        ir_data_ready();
     }
 
     return 1;
