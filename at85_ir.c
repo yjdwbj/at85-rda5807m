@@ -148,7 +148,7 @@ ISR(INT0_vect) {
 }
 
 bool ir_data_ready(void) {
-    if (bufferState == BUF_READY) {
+    if (bufferState != BUF_NOT_READY) {
         cli(); // Disable INT0, prepare to LCD show string.
         oled_clear();
         sprintf(lcd_buffer, "0x%x", IRData->cmd);

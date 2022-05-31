@@ -134,6 +134,8 @@ void set_bass_boost(bool switchOn) {
 }
 
 void set_volume(uint8_t newVolume) {
+    if((newVolume & 0xf) > 0xf)
+        return;
     newVolume &= RADIO_REG_VOL_VOL;
     _reg_mem[RADIO_REG_VOL] &= (~RADIO_REG_VOL_VOL);
     _reg_mem[RADIO_REG_VOL] |= newVolume;
@@ -141,7 +143,7 @@ void set_volume(uint8_t newVolume) {
 }
 
 uint8_t get_volume() {
-    return _reg_mem[RADIO_REG_VOL];
+    return (_reg_mem[RADIO_REG_VOL] & 0xf) > 0 ? _reg_mem[RADIO_REG_VOL] : 0;
 }
 
 void _write_register(uint8_t reg, uint16_t value) {
