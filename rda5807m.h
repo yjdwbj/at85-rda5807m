@@ -21,12 +21,16 @@
 #define RADIO_REG_CTRL_ENABLE 0x0001
 
 #define RADIO_REG_CHAN 0x03
-#define RADIO_REG_CHAN_SPACE 0x0003
-#define RADIO_REG_CHAN_SPACE_100 0x0000
-#define RADIO_REG_CHAN_BAND 0x000C
-#define RADIO_REG_CHAN_BAND_FM 0x0000
-#define RADIO_REG_CHAN_BAND_FMWORLD 0x0008
 #define RADIO_REG_CHAN_TUNE 0x0010
+#define RADIO_REG_CHAN_BAND_US_EU 0x0 // [3:2] 00 87-108MHz(US/Europe)
+#define RADIO_REG_CHAN_BAND_JP    0x4    // [3:2] 01 76-91MHz(Japan)
+#define RADIO_REG_CHAN_BAND_WORLD 0x8 // [3:2] 10 76-108(world wide)
+#define RADIO_REG_CHAN_BAND_EEUR  0xc // [3:2] 11 65 –76 MHz （East Europe） or 50-65MHz
+#define RADIO_REG_CHAN_SPACE_00 0x0 // [1:0] 00 = 100kHz
+#define RADIO_REG_CHAN_SPACE_01 0x1 // [1:0] 01 = 200kHz
+#define RADIO_REG_CHAN_SPACE_10 0x2 // [1:0] 10 = 50kHz
+#define RADIO_REG_CHAN_SPACE_11 0x3 // [1:0] 11 = 25kHz
+
 //      RADIO_REG_CHAN_TEST   0x0020
 #define RADIO_REG_CHAN_NR 0x7FC0
 
@@ -61,15 +65,18 @@
 #define I2C_INDX 0x11
 
 typedef enum {
-    RADIO_BAND_NONE = 0, ///< No band selected.
-
-    RADIO_BAND_FM = 0x01,      ///< FM band 87.5 - 108 MHz (USA, Europe) selected.
-    RADIO_BAND_FMWORLD = 0x02, ///< FM band 76 - 108 MHz (Japan, Worldwide) selected.
-    RADIO_BAND_AM = 0x03,      ///< AM band selected.
-    RADIO_BAND_KW = 0x04,      ///< KW band selected.
-
-    RADIO_BAND_FMTX = 0x11, ///< Transmit for FM.
+    RADIO_BAND_EU = 0x00,      // 00 87-108MHz(US/Europe)
+    RADIO_BAND_JP = 0x04,      // [3:2] 01 76-91MHz(Japan)
+    RADIO_BAND_WD = 0x08,      // [3:2] 10 76-108(world wide)
+    RADIO_BAND_EE = 0x0c,      // [3:2] 11 65 –76 MHz （East Europe） or 50-65MHz
 } RADIO_BAND;
+
+typedef enum {
+    CH_SPACE_25 =  25,  // [1:0] 11 = 25kHz
+    CH_SPACE_50 =  50,  // [1:0] 10 = 50kHz
+    CH_SPACE_100 = 100, // [1:0] 00 = 100kHz
+    CH_SPACE_200 = 200, // [1:0] 01 = 200kHz
+} CH_SPACE;
 
 /// Frequency data type.
 /// Only 16 bits are used for any frequency value (not the real one)
@@ -80,10 +87,14 @@ uint8_t get_volume();
 void set_bass_boost(bool switchOn);
 void set_mono(bool switchOn);
 void set_mute(bool switchOn);
+bool get_mute(void);
 void set_soft_mute(bool switchOn); ///< Set the soft mute mode (mute on low signals) on or off.
 
 // ----- Receiver features -----
 void set_band(RADIO_BAND newBand);
+void set_ch_space(CH_SPACE newSpace);
+uint8_t get_ch_space(void);
+
 void set_frequency(RADIO_FREQ newF);
 RADIO_FREQ get_frequency(void);
 
@@ -98,9 +109,9 @@ RADIO_FREQ _freq; ///< Last set frequency.
 
 RADIO_FREQ _freqLow;   ///< Lowest frequency of the current selected band.
 RADIO_FREQ _freqHigh;  ///< Highest frequency of the current selected band.
-RADIO_FREQ _freqSteps; ///< Resolution of the tuner.
+uint8_t _freqSteps; ///< Resolution of the tuner.
 void _write_register(uint8_t reg, uint16_t value);
 void _save_registers(void);
-uint16_t _read_register();
+uint16_t _read_register(void);
 
 #endif

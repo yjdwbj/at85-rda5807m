@@ -150,10 +150,8 @@ ISR(INT0_vect) {
 bool ir_data_ready(void) {
     if (bufferState != BUF_NOT_READY) {
         cli(); // Disable INT0, prepare to LCD show string.
+        uint8_t vol = get_volume();
         oled_clear();
-        sprintf(lcd_buffer, "0x%x", IRData->cmd);
-        oled_p8x16str(0, 4, lcd_buffer);
-        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
         switch (IRData->cmd) {
         case 0xfa05:
             seek_up(true);
@@ -162,14 +160,27 @@ bool ir_data_ready(void) {
             seek_down(true);
             break;
         case 0xe11e:
-            set_volume(get_volume() + 1);
+            set_volume(++vol);
             break;
         case 0xf50a:
-            set_volume(get_volume() - 1);
+            set_volume(--vol);
+            break;
+        case 0xe916:
+            set_mute(!get_mute());
             break;
         default:
             break;
         }
+        uint16_t ch = get_frequency();
+        sprintf(lcd_buffer, "ch:%d", ch);
+        oled_p8x16str(0, 2, lcd_buffer);
+        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+        sprintf(lcd_buffer, "vol:%d", vol);
+        oled_p8x16str(0, 4, lcd_buffer);
+        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+        sprintf(lcd_buffer, "mute:%c",get_mute() ==  true?'t':'f');
+        oled_p8x16str(0, 6, lcd_buffer);
+        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
         sei();
         bufferIndex = 0;
         bufferState = BUF_NOT_READY;
