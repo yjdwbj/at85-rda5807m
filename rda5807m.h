@@ -72,10 +72,10 @@ typedef enum {
 } RADIO_BAND;
 
 typedef enum {
-    CH_SPACE_25 =  25,  // [1:0] 11 = 25kHz
-    CH_SPACE_50 =  50,  // [1:0] 10 = 50kHz
-    CH_SPACE_100 = 100, // [1:0] 00 = 100kHz
-    CH_SPACE_200 = 200, // [1:0] 01 = 200kHz
+    CH_SPACE_100 = 0, // [1:0] 00 = 100kHz
+    CH_SPACE_200, // [1:0] 01 = 200kHz
+    CH_SPACE_50,  // [1:0] 10 = 50kHz
+    CH_SPACE_25,  // [1:0] 11 = 25kHz
 } CH_SPACE;
 
 /// Frequency data type.
@@ -87,7 +87,6 @@ uint8_t get_volume();
 void set_bass_boost(bool switchOn);
 void set_mono(bool switchOn);
 void set_mute(bool switchOn);
-bool get_mute(void);
 void set_soft_mute(bool switchOn); ///< Set the soft mute mode (mute on low signals) on or off.
 
 // ----- Receiver features -----
@@ -104,12 +103,13 @@ void seek_down(bool toNextSender); // start seek mode downwards
 // ----- Supporting RDS for RADIO_BAND_FM and RADIO_BAND_FMWORLD
 
 uint16_t _reg_mem[16];
-RADIO_BAND _band; ///< Last set band.
-RADIO_FREQ _freq; ///< Last set frequency.
+RADIO_BAND _band; // Last set band.
+RADIO_FREQ _freq; // Last set frequency.
+CH_SPACE  _space; // Last set space.
 
-RADIO_FREQ _freqLow;   ///< Lowest frequency of the current selected band.
-RADIO_FREQ _freqHigh;  ///< Highest frequency of the current selected band.
-uint8_t _freqSteps; ///< Resolution of the tuner.
+RADIO_FREQ _freqLow;   // Lowest frequency of the current selected band.
+RADIO_FREQ _freqHigh;  // Highest frequency of the current selected band.
+uint8_t _freqSteps; // Resolution of the tuner.
 void _write_register(uint8_t reg, uint16_t value);
 void _save_registers(void);
 uint16_t _read_register(void);

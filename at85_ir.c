@@ -6,6 +6,8 @@
 // https://circuitdigest.com/microcontroller-projects/build-your-own-ir-remote-decoder-using-tsop-and-pic-microcontroller
 
 static volatile bool repeatCode = false;
+static volatile bool _toggleMute = false;
+
 
 // 4Byte of IR data,
 // LSB first, 1 start bit + 16 bit address (or 8 bit address and 8 bit inverted address) + 8 bit command + 8 bit inverted command + 1 stop bit.
@@ -166,7 +168,8 @@ bool ir_data_ready(void) {
             set_volume(--vol);
             break;
         case 0xe916:
-            set_mute(!get_mute());
+            _toggleMute = !_toggleMute;
+            set_mute(_toggleMute);
             break;
         default:
             break;
@@ -178,7 +181,7 @@ bool ir_data_ready(void) {
         sprintf(lcd_buffer, "vol:%d", vol);
         oled_p8x16str(0, 4, lcd_buffer);
         memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
-        sprintf(lcd_buffer, "mute:%c",get_mute() ==  true?'t':'f');
+        sprintf(lcd_buffer, "mute:%c",_toggleMute?'t':'f');
         oled_p8x16str(0, 6, lcd_buffer);
         memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
         sei();
