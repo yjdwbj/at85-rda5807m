@@ -186,10 +186,8 @@ void _write_register(uint8_t reg, uint16_t value) {
 
 uint16_t _read_register() {
     i2c_start(I2C_SEQ, USI_READ);
-    sei();
     uint8_t hb = i2c_read();
     uint8_t lb = i2c_read();
-    cli();
     i2c_stop();
     return ((hb << 8) & lb);
 }

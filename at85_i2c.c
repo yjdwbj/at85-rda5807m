@@ -79,7 +79,8 @@ uint8_t i2c_read(void) {
     SDA_PIN_HIGH();   /* Release SDA. */
     // i2c_transfer(USI_ACK);
     USISR |=_BV(USIOIF);   //clear overflow flags
-    while((USISR&0x01)==0); //Wait until counter goes 1
+     _delay_us(HIGH_PERIOD);
+    // while((USISR&0x01)==0); //Wait until counter goes 1
     SDA_PIN_LOW();  //Ack bit end
     USISR &= 0xF0;
     return data;
