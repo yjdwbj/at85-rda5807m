@@ -14,7 +14,7 @@ void init_fm(void) {
     _reg_mem[RADIO_REG_CTRL] = (RADIO_REG_CTRL_RESET | RADIO_REG_CTRL_ENABLE);
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
     set_ch_space(CH_SPACE_100);
-    set_band(RADIO_BAND_EU);
+    set_band(RADIO_BAND_WD);
 
     //  0x1800;  // 04 DE ? SOFTMUTE
     _reg_mem[RADIO_REG_R4] = RADIO_REG_R4_EM50;
@@ -120,25 +120,12 @@ RADIO_FREQ get_frequency(void) {
 void seek_up(bool toNextSender) {
     _reg_mem[RADIO_REG_CTRL] |= RADIO_REG_CTRL_SEEKUP | RADIO_REG_CTRL_SEEK;
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
-    _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_SEEK; // clear seekmode;
-
-    if (!toNextSender) {
-        // stop scanning right now
-        _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
-    }
 }
 
 void seek_down(bool toNextSender) {
-    uint16_t val = RADIO_REG_CTRL_SEEK;
     _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_SEEKUP;
     _reg_mem[RADIO_REG_CTRL] |= RADIO_REG_CTRL_SEEK;
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
-    _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_SEEK; // clear seekmode;
-
-    if (!toNextSender) {
-        // stop scanning right now
-        _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
-    }
 }
 
 void set_soft_mute(bool switchOn) {
@@ -162,26 +149,24 @@ void set_mute(bool switchOn) {
 void set_mono(bool switchOn) {
     _reg_mem[RADIO_REG_CTRL] &= (~RADIO_REG_CTRL_SEEK);
     if (switchOn) {
-        _reg_mem[RADIO_REG_CTRL] |= (RADIO_REG_CTRL_MONO);
+        _reg_mem[RADIO_REG_CTRL] |= (RADIO_REG_CTRL_MONO_SELECT);
     } else {
-        _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_MONO;
+        _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_MONO_SELECT;
     }
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
 }
 
 void set_bass_boost(bool switchOn) {
     if (switchOn) {
-        _reg_mem[RADIO_REG_CTRL] |= (RADIO_REG_CTRL_BASS);
+        _reg_mem[RADIO_REG_CTRL] |= (RADIO_REG_CTRL_BASS_BOOST);
     } else {
-        _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_BASS;
+        _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_BASS_BOOST;
     }
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
 }
 
 void set_volume(uint8_t newVolume) {
-    newVolume &= RADIO_REG_VOL_VOL;
-    _reg_mem[RADIO_REG_VOL] &= (~RADIO_REG_VOL_VOL);
-    _reg_mem[RADIO_REG_VOL] |= newVolume;
+    _reg_mem[RADIO_REG_VOL] = (_reg_mem[RADIO_REG_VOL] & 0xfff0 ) | (newVolume & 0x0f);
     _write_register(RADIO_REG_VOL, _reg_mem[RADIO_REG_VOL]);
 }
 
@@ -198,7 +183,7 @@ void _write_register(uint8_t reg, uint16_t value) {
 }
 
 uint16_t _read_register() {
-    i2c_start(I2C_SEQ, USI_READ);
+    i2c_start(I2C_INDX, USI_READ);
     uint8_t hb = i2c_read();
     uint8_t lb = i2c_read();
     i2c_stop();

@@ -33,14 +33,13 @@ void i2c_setup() {
     USISR = 0;
 #else
     DDRB = _BV(SDA_PIN) | _BV(SCL_PIN);
-    SDA_PIN_HIGH();
-    SCL_PIN_HIGH();
-    USICR = _BV(USIWM1) | _BV(USIWM0) | /* Choosing I2C aka two wire mode */
-            _BV(USICLK) | _BV(USIOIE);                /* Software stobe as counter clock source */
+    /* Choosing I2C aka two wire mode */
+    USICR |= _BV(USIWM1) | _BV(USIWM0);
+    USICR |= _BV(USICLK) | _BV(USIOIE);  /* Software stobe as counter clock source */
     USISR = _BV(USISIF) | _BV(USIOIF) | _BV(USIPF) | _BV(USIDC);
     USIDR = 0xff;
 #endif
-    // USICR &= ~_BV(USIWM0);
+    USICR &= ~_BV(USIWM0);
 }
 
 uint8_t i2c_write(uint8_t data) {
@@ -73,16 +72,12 @@ uint8_t i2c_write(uint8_t data) {
 
 uint8_t i2c_read(void) {
     uint8_t data;
+    /* set SDA as input */
+    SDA_PIN_INPUT();
     data = i2c_transfer(USI_DATA);
-
-    /* read ACK from slave */
-
-    USISR |=_BV(USIOIF);   //clear overflow flags
-    _delay_us(LOW_PERIOD);
-    SDA_PIN_LOW();  //Ack bit end
-    USISR &= 0xF0;
-     _delay_us(HIGH_PERIOD);
-    SDA_PIN_HIGH();   /* Release SDA. */
+    SDA_PIN_OUTPUT();
+    // USIDR = 0;
+    i2c_transfer(USI_ACK);
     return data;
 }
 
@@ -107,7 +102,6 @@ uint8_t i2c_start(uint8_t address, uint8_t mode) {
     i2c_transfer(USI_DATA);
 
     SDA_PIN_INPUT(); /* set SDA input for read ACK */
-
     if (i2c_transfer(USI_ACK) & 0x01)
         return 1;
     return 0;
