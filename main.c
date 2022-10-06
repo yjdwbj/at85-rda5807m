@@ -31,15 +31,15 @@ int main(void) {
     oled_init();
     oled_clear();
 
-    _delay_ms(2000);
+    _delay_ms(1000);
     init_fm();
-    set_frequency(9210);
-    set_volume(1);
-    set_mute(false);
-    set_mono(true);
 
+    // set_volume(1);
+    // set_mute(false);
+    // set_mono(true);
+    set_frequency(8750);
+    // _delay_ms(40);
     uint16_t value = get_frequency();
-    // uint16_t value = 9999;
     sprintf(lcd_buffer, "%d",value);
     oled_p8x16str(0, 2, lcd_buffer);
     memset(lcd_buffer, 0, LCD_BUFFER_SIZE);

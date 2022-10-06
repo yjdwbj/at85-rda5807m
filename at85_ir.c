@@ -8,7 +8,6 @@
 static volatile bool repeatCode = false;
 static volatile bool _toggleMute = false;
 
-
 // 4Byte of IR data,
 // LSB first, 1 start bit + 16 bit address (or 8 bit address and 8 bit inverted address) + 8 bit command + 8 bit inverted command + 1 stop bit.
 #define BUFFER_SIZE 32
@@ -152,38 +151,51 @@ ISR(INT0_vect) {
 bool ir_data_ready(void) {
     if (bufferState != BUF_NOT_READY) {
         cli(); // Disable INT0, prepare to LCD show string.
-        uint8_t vol = get_volume();
         oled_clear();
         switch (IRData->cmd) {
         case 0xfa05:
-            seek_up(true);
+            seek_up();
             break;
-        case 0xfa02:
-            seek_down(true);
+        case 0xfd02:
+            seek_down();
             break;
         case 0xe11e:
-            set_volume(++vol);
+            volume_up();
             break;
         case 0xf50a:
-            set_volume(--vol);
+            volume_down();
             break;
         case 0xe916:
-            _toggleMute = !_toggleMute;
-            set_mute(_toggleMute);
+            toggle_mute();
+            break;
+        case 0xab54:
+            shift_band();
+            break;
+        case 0xf30c:
+            shift_space();
+            break;
+        case 0xb24d:
+            toggle_power();
             break;
         default:
             break;
         }
-        uint16_t ch = get_frequency();
-        sprintf(lcd_buffer, "ch:%d", ch);
-        oled_p8x16str(0, 2, lcd_buffer);
-        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
-        sprintf(lcd_buffer, "vol:%d", vol);
-        oled_p8x16str(0, 4, lcd_buffer);
-        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
-        sprintf(lcd_buffer, "mute:%c",_toggleMute?'t':'f');
-        oled_p8x16str(0, 6, lcd_buffer);
-        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+        if (has_poweroff()) {
+            oled_clear();
+        } else {
+            sprintf(lcd_buffer, "cmd:%x", IRData->cmd);
+            oled_p8x16str(0, 0, lcd_buffer);
+            memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+            sprintf(lcd_buffer, "vol:%d,space:%d", (uint8_t)get_volume(), (uint8_t)get_space());
+            oled_p8x16str(0, 4, lcd_buffer);
+            memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+            sprintf(lcd_buffer, "mute:%c rssi:%u", get_mute() ? 't' : 'f', (uint8_t)get_rssi());
+            oled_p8x16str(0, 6, lcd_buffer);
+            memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+            sprintf(lcd_buffer, "ch:%d,band:%d", (uint16_t)get_frequency(), get_band());
+            oled_p8x16str(0, 2, lcd_buffer);
+            memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+        }
         sei();
         bufferIndex = 0;
         bufferState = BUF_NOT_READY;
