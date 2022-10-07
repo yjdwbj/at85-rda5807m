@@ -30,6 +30,7 @@
 #define RADIO_REG_CHANNEL   0xFFC0
 #define RADIO_REG_DIRECT_MODE     0x0020
 #define RADIO_REG_CHAN_TUNE 0x0010
+#define RADIO_REG_TUNE_SHIFT 4
 #define RADIO_BAND_MASK 0x000C
 #define RADIO_BAND_SHIFT 2
 #define RADIO_CHAN_SHIFT 6
@@ -71,6 +72,7 @@
 // Status bits
 #define RADIO_REG_RA_RDSR 0x8000
 #define RADIO_REG_RA_STC 0x4000
+#define RADIO_REG_RA_STC_SHIFT 14
 #define RADIO_REG_RA_SF 0x2000
 #define RADIO_REG_RA_RDSS 0x1000
 #define RADIO_REG_RA_RDSBLOCK 0x0800
@@ -120,11 +122,10 @@ typedef enum {
 typedef uint16_t RADIO_FREQ;
 void init_fm(void);
 void set_volume(uint8_t newVolume);
+void set_tune(bool flag);
 void volume_up(void);
 void volume_down(void);
 uint8_t get_volume();
-void set_bass_boost(bool switchOn);
-void set_mono(bool switchOn);
 void toggle_mute(void);
 bool get_mute(void);
 void toggle_power(void);
@@ -151,7 +152,7 @@ void seek_down(); // start seek mode downwards
 // ----- Supporting RDS for RADIO_BAND_FM and RADIO_BAND_FMWORLD
 
 uint16_t _reg_mem[16];
-RADIO_BAND _band; // Last set band.
+// RADIO_BAND _band; // Last set band.
 RADIO_FREQ _freq; // Last set frequency.
 CH_SPACE  _space; // Last set space.
 

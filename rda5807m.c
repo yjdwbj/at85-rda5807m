@@ -13,14 +13,21 @@
 void init_fm(void) {
     _reg_mem[RADIO_REG_CHIPID] = 0x5807;
     _write_register(RADIO_REG_CHIPID, _reg_mem[RADIO_REG_CHIPID]);
-    _reg_mem[RADIO_REG_CTRL] = (RADIO_REG_CTRL_RESET | RADIO_REG_CTRL_ENABLE | RADIO_REG_CTRL_NEW | RADIO_REG_CTRL_RDS);
+    _reg_mem[RADIO_REG_CTRL] = (RADIO_REG_CTRL_DHIZ |
+                                RADIO_REG_CTRL_BASS_BOOST |
+                                RADIO_REG_CTRL_DMUTE |
+                                RADIO_REG_CTRL_RESET |
+                                RADIO_REG_CTRL_ENABLE |
+                                RADIO_REG_CTRL_NEW |
+                                RADIO_REG_CTRL_RDS);
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
     set_ch_space(CH_SPACE_100); // RDA5807m can't work on 50k space.
     set_band(RADIO_BAND_WD);
 
     //  0x1800;  // 04 DE ? SOFTMUTE
-    _reg_mem[RADIO_REG_R4] = RADIO_REG_R4_EM50;
-    _write_register(RADIO_REG_R4, _reg_mem[RADIO_REG_R4]);
+    // _reg_mem[RADIO_REG_R4] |= RADIO_REG_R4_EM50 | (1 << 11);
+    // _write_register(RADIO_REG_R4, _reg_mem[RADIO_REG_R4]);
+    _delay_ms(40);
 }
 
 void set_ch_space(CH_SPACE newSpace) {
@@ -46,8 +53,19 @@ void set_ch_space(CH_SPACE newSpace) {
     _write_register(RADIO_REG_CHAN, _reg_mem[RADIO_REG_CHAN]);
 }
 
+void set_tune(bool flag) {
+    _reg_mem[RADIO_REG_CHAN] = _read_register(RADIO_REG_CHAN);
+    bool en = ((_reg_mem[RADIO_REG_CHAN] & _BV(RADIO_REG_TUNE_SHIFT)) >> RADIO_REG_TUNE_SHIFT) == 1;
+    if (flag && en || !flag && !en)
+        return;
+    if (flag)
+        _reg_mem[RADIO_REG_CHAN] |= _BV(RADIO_REG_TUNE_SHIFT);
+    else
+        _reg_mem[RADIO_REG_CHAN] &= ~_BV(RADIO_REG_TUNE_SHIFT);
+    _write_register(RADIO_REG_CHAN, _reg_mem[RADIO_REG_CHAN]);
+}
+
 void set_band(RADIO_BAND newBand) {
-    _band = newBand;
     _reg_mem[RADIO_REG_CHAN] &= ~RADIO_BAND_MASK;
     uint8_t space = _reg_mem[RADIO_REG_CHAN] & RADIO_REG_SPACE_MASK;
     switch (newBand) {
@@ -56,9 +74,6 @@ void set_band(RADIO_BAND newBand) {
         _freqHigh = 10800;
         break;
     case RADIO_BAND_JP:
-        _freqLow = 7600;
-        _freqHigh = 9100;
-        break;
     case RADIO_BAND_WD:
         _freqLow = 7600;
         _freqHigh = 10800;
@@ -75,7 +90,7 @@ void set_band(RADIO_BAND newBand) {
 }
 
 void shift_band(void) {
-    uint8_t band = (_read_register(RADIO_REG_CHAN) & RADIO_BAND_MASK) >> 2;
+    uint8_t band = get_band();
     if (band == RADIO_BAND_EE)
         band = RADIO_BAND_EU;
     else
@@ -85,7 +100,8 @@ void shift_band(void) {
 }
 
 uint8_t get_band(void) {
-    return (uint8_t)((_reg_mem[RADIO_REG_CHAN] & RADIO_BAND_MASK) >> 2);
+    _reg_mem[RADIO_REG_CHAN] = _read_register(RADIO_REG_CHAN);
+    return (uint8_t)((_reg_mem[RADIO_REG_CHAN] & RADIO_BAND_MASK) >> RADIO_BAND_SHIFT);
 }
 
 void shift_space(void) {
@@ -117,7 +133,7 @@ uint16_t get_ch_space(void) {
 
 void set_frequency(uint16_t newF) {
     uint16_t newChannel;
-    uint16_t regChannel = _reg_mem[RADIO_REG_CHAN] & (RADIO_REG_CHAN_SPACE_00 | _band);
+    uint16_t regChannel = 0x0;
 
     if (newF < _freqLow)
         newF = _freqLow;
@@ -125,20 +141,27 @@ void set_frequency(uint16_t newF) {
         newF = _freqHigh;
     newChannel = (newF - _freqLow) / _freqSteps;
 
-    regChannel += RADIO_REG_CHAN_TUNE; // enable tuning
-    regChannel |= newChannel << 6;
+    regChannel |= RADIO_REG_CHAN_TUNE; // enable tuning
+    regChannel |= newChannel << RADIO_CHAN_SHIFT;
 
-    // enable output and unmute
-    _reg_mem[RADIO_REG_CTRL] = RADIO_REG_CTRL_DHIZ | RADIO_REG_CTRL_DMUTE | RADIO_REG_CTRL_RDS | RADIO_REG_CTRL_ENABLE;
+    //  enable output and unmute
+    _reg_mem[RADIO_REG_CTRL] = RADIO_REG_CTRL_DHIZ |
+                                RADIO_REG_CTRL_DMUTE |
+                                RADIO_REG_CTRL_NEW |
+                                RADIO_REG_CTRL_RDS |
+                                RADIO_REG_CTRL_ENABLE;
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
-    _reg_mem[RADIO_REG_CHAN] = regChannel;
+    _reg_mem[RADIO_REG_CHAN] |= regChannel;
     _write_register(RADIO_REG_CHAN, _reg_mem[RADIO_REG_CHAN]);
 }
 
 RADIO_FREQ get_frequency(void) {
     _delay_ms(40); // wait for seek done.
+    // do {
+    _reg_mem[RADIO_REG_RA] = _read_register(RADIO_REG_RA);
+    // } while (((_reg_mem[RADIO_REG_RA] & RADIO_REG_RA_STC) >> RADIO_REG_RA_STC_SHIFT) == 0);
     return _freqLow +
-           (_read_register(RADIO_REG_RA) & RADIO_REG_RA_NR) * _freqSteps;
+           (_reg_mem[RADIO_REG_RA] & RADIO_REG_RA_NR) * _freqSteps;
 }
 
 uint8_t get_rssi(void) {
@@ -154,7 +177,6 @@ void seek_up() {
 }
 
 void seek_down() {
-    _reg_mem[RADIO_REG_CTRL] = _read_register(RADIO_REG_CTRL);
     _reg_mem[RADIO_REG_CTRL] &= ~(RADIO_REG_CTRL_SEEKUP | RADIO_REG_CTRL_SEEK | RADIO_REG_SEEK_MODE);
     _reg_mem[RADIO_REG_CTRL] |= RADIO_REG_CTRL_SEEK;
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
@@ -178,50 +200,24 @@ bool get_mute() {
 
 void toggle_power(void) {
     bool poweroff = has_poweroff();
-    RADIO_FREQ ch = get_frequency();
+    // static RADIO_FREQ ch = get_frequency();
     if (poweroff) {
-        // _reg_mem[RADIO_REG_CTRL] = RADIO_REG_CTRL_DHIZ | RADIO_REG_CTRL_DMUTE |
-        //                            RADIO_REG_CTRL_MONO_SELECT | RADIO_REG_CTRL_BASS_BOOST |
-        //                            RADIO_REG_CTRL_SEEKUP | RADIO_REG_CTRL_RDS | RADIO_REG_CTRL_NEW |
-        //                            RADIO_REG_CTRL_ENABLE;
-        // set_ch_space(CH_SPACE_100); // RDA5807m can't work on 50k space.
-        // set_band(RADIO_BAND_WD);
-        set_frequency(ch);
-        return ;
+        set_frequency(get_frequency());
+        return;
     }
     _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_ENABLE;
-
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
     _delay_ms(40);
 }
 
 bool has_poweroff(void) {
     _reg_mem[RADIO_REG_CTRL] = _read_register(RADIO_REG_CTRL);
-    bool disabled = (_reg_mem[RADIO_REG_CTRL] & RADIO_REG_CTRL_ENABLE) == 0;
-    return disabled;
-}
-
-void set_mono(bool switchOn) {
-    _reg_mem[RADIO_REG_CTRL] &= (~RADIO_REG_CTRL_SEEK);
-    if (switchOn) {
-        _reg_mem[RADIO_REG_CTRL] |= (RADIO_REG_CTRL_MONO_SELECT);
-    } else {
-        _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_MONO_SELECT;
-    }
-    _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
-}
-
-void set_bass_boost(bool switchOn) {
-    if (switchOn) {
-        _reg_mem[RADIO_REG_CTRL] |= (RADIO_REG_CTRL_BASS_BOOST);
-    } else {
-        _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_BASS_BOOST;
-    }
-    _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
+    return (_reg_mem[RADIO_REG_CTRL] & RADIO_REG_CTRL_ENABLE) == 0;
 }
 
 void set_volume(uint8_t newVolume) {
-    _reg_mem[RADIO_REG_VOL] = (_reg_mem[RADIO_REG_VOL] & 0xfff0) | (newVolume & 0x0f);
+    _reg_mem[RADIO_REG_VOL] &= ~RADIO_REG_VOL_MASK;
+    _reg_mem[RADIO_REG_VOL] |= newVolume;
     _write_register(RADIO_REG_VOL, _reg_mem[RADIO_REG_VOL]);
 }
 

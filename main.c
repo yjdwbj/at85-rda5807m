@@ -33,16 +33,8 @@ int main(void) {
 
     _delay_ms(1000);
     init_fm();
-
-    // set_volume(1);
-    // set_mute(false);
-    // set_mono(true);
     set_frequency(8750);
-    // _delay_ms(40);
-    uint16_t value = get_frequency();
-    sprintf(lcd_buffer, "%d",value);
-    oled_p8x16str(0, 2, lcd_buffer);
-    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+    show_radio_info();
     sei(); //  AVR Status Register, Bit 7 – I: Global Interrupt Enable
     ir_bus_init();
     while (1) {

@@ -58,6 +58,7 @@ void tc1_init(void);
 void ir_bus_init(void);
 bool ir_data_ready(void);
 void ir_data_clean(void);
+void show_radio_info(void);
 static uint8_t check_low_time(bool isLeading);
 static uint8_t check_high_time(bool isLeading);
 

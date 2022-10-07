@@ -183,18 +183,7 @@ bool ir_data_ready(void) {
         if (has_poweroff()) {
             oled_clear();
         } else {
-            sprintf(lcd_buffer, "cmd:%x", IRData->cmd);
-            oled_p8x16str(0, 0, lcd_buffer);
-            memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
-            sprintf(lcd_buffer, "vol:%d,space:%d", (uint8_t)get_volume(), (uint8_t)get_space());
-            oled_p8x16str(0, 4, lcd_buffer);
-            memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
-            sprintf(lcd_buffer, "mute:%c rssi:%u", get_mute() ? 't' : 'f', (uint8_t)get_rssi());
-            oled_p8x16str(0, 6, lcd_buffer);
-            memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
-            sprintf(lcd_buffer, "ch:%d,band:%d", (uint16_t)get_frequency(), get_band());
-            oled_p8x16str(0, 2, lcd_buffer);
-            memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+            show_radio_info();
         }
         sei();
         bufferIndex = 0;
@@ -202,4 +191,19 @@ bool ir_data_ready(void) {
         captureState = WAIT_STATE;
         repeatCode = false;
     }
+}
+
+void show_radio_info(void) {
+    sprintf(lcd_buffer, "cmd:%x", IRData->cmd);
+    oled_p8x16str(0, 0, lcd_buffer);
+    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+    sprintf(lcd_buffer, "vol:%d,space:%d", (uint8_t)get_volume(), (uint8_t)get_space());
+    oled_p8x16str(0, 4, lcd_buffer);
+    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+    sprintf(lcd_buffer, "mute:%c rssi:%u", get_mute() ? 't' : 'f', (uint8_t)get_rssi());
+    oled_p8x16str(0, 6, lcd_buffer);
+    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+    sprintf(lcd_buffer, "ch:%d,band:%d", (uint16_t)get_frequency(), (uint8_t)get_band());
+    oled_p8x16str(0, 2, lcd_buffer);
+    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
 }
