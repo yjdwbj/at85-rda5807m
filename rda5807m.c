@@ -1,14 +1,35 @@
 #include "rda5807m.h"
 #include <avr/interrupt.h>
+/********************************************************************************
+ * at85-rda5807m/sh1106.c
+ *
+ * This file is part of the at85-rda5807m distribution.
+ *  (https://github.com/yjdwbj/at85-rda5807m).
+ * Copyright (c) 2021 Liu Chun Yang
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ ********************************************************************************/
 
-// https://www.hackster.io/indoorgeek/fm-radio-using-arduino-and-rda8057m-73a262
-// https://tomeko.net/projects/RDA5807M_radio/index.php?lang=en
-// https://github.com/f5swb/RDA5807
-// https://github.com/mathertel/Radio
-// https://circuitdigest.com/microcontroller-projects/arduino-fm-radio-using-rda5807
-// https://github.com/rmrfus/tinybme
-// https://funprojects.blog/tag/rda5807/
-// https://github.com/csdexter/RDA5807M
+/**  refer from below list of resources.
+ *  https://www.hackster.io/indoorgeek/fm-radio-using-arduino-and-rda8057m-73a262
+ *  https://tomeko.net/projects/RDA5807M_radio/index.php?lang=en
+ *  https://github.com/f5swb/RDA5807
+ *  https://github.com/mathertel/Radio
+ *  https://circuitdigest.com/microcontroller-projects/arduino-fm-radio-using-rda5807
+ *  https://funprojects.blog/tag/rda5807/
+ *  https://github.com/csdexter/RDA5807M
+ **/
 
 void init_fm(void) {
     _reg_mem[RADIO_REG_CHIPID] = 0x5807;
@@ -23,11 +44,6 @@ void init_fm(void) {
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
     set_ch_space(CH_SPACE_100); // RDA5807m can't work on 50k space.
     set_band(RADIO_BAND_WD);
-
-    //  0x1800;  // 04 DE ? SOFTMUTE
-    // _reg_mem[RADIO_REG_R4] |= RADIO_REG_R4_EM50 | (1 << 11);
-    // _write_register(RADIO_REG_R4, _reg_mem[RADIO_REG_R4]);
-    _delay_ms(40);
 }
 
 void set_ch_space(CH_SPACE newSpace) {
@@ -118,19 +134,6 @@ uint8_t get_space(void) {
     return (uint8_t)(_read_register(RADIO_REG_CHAN) & RADIO_REG_SPACE_MASK);
 }
 
-uint16_t get_ch_space(void) {
-    uint8_t band = _read_register(RADIO_REG_CHAN) & (RADIO_BAND_MASK | RADIO_REG_SPACE_MASK);
-    const uint8_t space = band & RADIO_REG_SPACE_MASK;
-
-    if (band & RADIO_BAND_MASK == RADIO_REG_CHAN_BAND_EEUR &&
-        !(_read_register(RADIO_REG_BLEND) & RADIO_REG_EASTBAND65M))
-        // Lower band limit is 50MHz
-        band = (band >> RADIO_BAND_SHIFT) + 1;
-    else
-        band >>= RADIO_BAND_SHIFT;
-    return (space << 8 | band);
-}
-
 void set_frequency(uint16_t newF) {
     uint16_t newChannel;
     uint16_t regChannel = 0x0;
@@ -146,10 +149,10 @@ void set_frequency(uint16_t newF) {
 
     //  enable output and unmute
     _reg_mem[RADIO_REG_CTRL] = RADIO_REG_CTRL_DHIZ |
-                                RADIO_REG_CTRL_DMUTE |
-                                RADIO_REG_CTRL_NEW |
-                                RADIO_REG_CTRL_RDS |
-                                RADIO_REG_CTRL_ENABLE;
+                               RADIO_REG_CTRL_DMUTE |
+                               RADIO_REG_CTRL_NEW |
+                               RADIO_REG_CTRL_RDS |
+                               RADIO_REG_CTRL_ENABLE;
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
     _reg_mem[RADIO_REG_CHAN] |= regChannel;
     _write_register(RADIO_REG_CHAN, _reg_mem[RADIO_REG_CHAN]);
@@ -157,9 +160,7 @@ void set_frequency(uint16_t newF) {
 
 RADIO_FREQ get_frequency(void) {
     _delay_ms(40); // wait for seek done.
-    // do {
     _reg_mem[RADIO_REG_RA] = _read_register(RADIO_REG_RA);
-    // } while (((_reg_mem[RADIO_REG_RA] & RADIO_REG_RA_STC) >> RADIO_REG_RA_STC_SHIFT) == 0);
     return _freqLow +
            (_reg_mem[RADIO_REG_RA] & RADIO_REG_RA_NR) * _freqSteps;
 }
@@ -167,8 +168,7 @@ RADIO_FREQ get_frequency(void) {
 uint8_t get_rssi(void) {
     _delay_ms(40);
     _reg_mem[RADIO_REG_RB] = _read_register(RADIO_REG_RB);
-    const uint8_t rssi = (_reg_mem[RADIO_REG_RB] & RADIO_REG_RSSI_MASK) >> RADIO_REG_RSSI_SHIFT;
-    return rssi;
+    return (uint8_t)((_reg_mem[RADIO_REG_RB] & RADIO_REG_RSSI_MASK) >> RADIO_REG_RSSI_SHIFT);
 }
 
 void seek_up() {
@@ -194,20 +194,17 @@ void toggle_mute() {
 
 bool get_mute() {
     _reg_mem[RADIO_REG_CTRL] = _read_register(RADIO_REG_CTRL);
-    bool mute = (_reg_mem[RADIO_REG_CTRL] & RADIO_REG_CTRL_DMUTE) >> RADIO_REG_CTRL_DMUTE_SHIFT == 0;
-    return mute;
+    return (_reg_mem[RADIO_REG_CTRL] & RADIO_REG_CTRL_DMUTE) >> RADIO_REG_CTRL_DMUTE_SHIFT == 0;
 }
 
 void toggle_power(void) {
     bool poweroff = has_poweroff();
-    // static RADIO_FREQ ch = get_frequency();
     if (poweroff) {
         set_frequency(get_frequency());
         return;
     }
     _reg_mem[RADIO_REG_CTRL] &= ~RADIO_REG_CTRL_ENABLE;
     _write_register(RADIO_REG_CTRL, _reg_mem[RADIO_REG_CTRL]);
-    _delay_ms(40);
 }
 
 bool has_poweroff(void) {

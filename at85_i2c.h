@@ -1,8 +1,8 @@
 /********************************************************************************
- * nrf24l01-ble/at85_i2c.h
+ * at85-rda5807m/at85_i2c.h
  *
- * This file is part of the at85_btle distribution.
- *  (https://github.com/yjdwbj/at85_btle).
+ * This file is part of the at85-rda5807m distribution.
+ *  (https://github.com/yjdwbj/at85-rda5807m).
  * Copyright (c) 2021 Liu Chun Yang
  *
  * This program is free software: you can redistribute it and/or modify

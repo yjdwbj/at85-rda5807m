@@ -1,8 +1,8 @@
 /********************************************************************************
- * nrf24l01-ble/sh1106.c
+ * at85-rda5807m/sh1106.c
  *
- * This file is part of the at85_btle distribution.
- *  (https://github.com/yjdwbj/at85_btle).
+ * This file is part of the at85-rda5807m distribution.
+ *  (https://github.com/yjdwbj/at85-rda5807m).
  * Copyright (c) 2021 Liu Chun Yang
  *
  * This program is free software: you can redistribute it and/or modify
