@@ -1,8 +1,8 @@
 /********************************************************************************
- * nrf24l01-ble/at85_i2c.h
+ * at85-rda5807m/at85_i2c.h
  *
- * This file is part of the at85_btle distribution.
- *  (https://github.com/yjdwbj/at85_btle).
+ * This file is part of the at85-rda5807m distribution.
+ *  (https://github.com/yjdwbj/at85-rda5807m).
  * Copyright (c) 2021 Liu Chun Yang
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,6 +23,7 @@
 #define __AT85_I2C_H
 
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>
 
 
@@ -100,9 +101,12 @@
 #define HIGH_PERIOD	5
 
 uint8_t i2c_start(uint8_t address,uint8_t mode);
+uint8_t i2c_master_start(void);
+
 uint8_t i2c_write(uint8_t data);
 void i2c_stop(void);
-uint8_t i2c_read(void);
+uint8_t i2c_read(uint8_t end);
+uint16_t i2c_read16();
 uint8_t i2c_transfer (uint8_t data);
 
 #endif /* __AT85_I2C_H */

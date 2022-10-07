@@ -1,8 +1,8 @@
 /********************************************************************************
- * nrf24l01-ble/main.c
+ * at85-rda5807m/main.c
  *
- * This file is part of the at85_btle distribution.
- *  (https://github.com/yjdwbj/at85_btle).
+ * This file is part of the at85-rda5807m distribution.
+ *  (https://github.com/yjdwbj/at85-rda5807m).
  * Copyright (c) 2021 Liu Chun Yang
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,25 +25,17 @@
 #include <avr/io.h>
 #define LCD_BUFFER_SIZE 16
 extern uint8_t lcd_buffer[LCD_BUFFER_SIZE];
-extern struct IR_data IRData;
 
 int main(void) {
+
     oled_init();
     oled_clear();
 
-    _delay_ms(800);
+    _delay_ms(1000);
     init_fm();
-    set_band(RADIO_BAND_FM);
     set_frequency(8750);
-    set_volume(1);
-    set_mute(false);
-    set_mono(false);
-
-    uint16_t value = get_frequency();
-    sprintf(lcd_buffer, "ch:%d", value);
-    oled_p8x16str(0, 4, lcd_buffer);
-    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
-    sei();
+    show_radio_info();
+    sei(); //  AVR Status Register, Bit 7 – I: Global Interrupt Enable
     ir_bus_init();
     while (1) {
         ir_data_ready();

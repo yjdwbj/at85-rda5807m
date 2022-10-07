@@ -1,8 +1,8 @@
 /********************************************************************************
  * at85-rda5807m/at85_i2c.h
  *
- * This file is part of the at85_btle distribution.
- *  (https://github.com/yjdwbj/at85_btle).
+ * This file is part of the at85-rda5807m distribution.
+ *  (https://github.com/yjdwbj/at85-rda5807m).
  * Copyright (c) 2021 Liu Chun Yang
  *
  * This program is free software: you can redistribute it and/or modify
@@ -46,10 +46,10 @@ typedef enum {
     BUF_NOT_READY
 } PulseBufferState;
 
-struct IR_data {
+typedef struct IR_data {
     uint16_t addr;
     uint16_t cmd;
-};
+}IR_data;
 
 static volatile PulseBufferState bufferState = BUF_NOT_READY;
 
@@ -58,6 +58,7 @@ void tc1_init(void);
 void ir_bus_init(void);
 bool ir_data_ready(void);
 void ir_data_clean(void);
+void show_radio_info(void);
 static uint8_t check_low_time(bool isLeading);
 static uint8_t check_high_time(bool isLeading);
 

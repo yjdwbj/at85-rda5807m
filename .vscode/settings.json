@@ -13,6 +13,7 @@
         "iotn85.h": "c",
         "iom328.h": "c",
         "iom328p.h": "c",
-        "interrupt.h": "c"
+        "interrupt.h": "c",
+        "at85_ir.h": "c"
     }
 }

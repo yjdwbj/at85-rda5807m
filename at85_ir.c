@@ -1,11 +1,32 @@
 #include "at85_ir.h"
 #include "oled.h"
+/********************************************************************************
+ * at85-rda5807m/sh1106.c
+ *
+ * This file is part of the at85-rda5807m distribution.
+ *  (https://github.com/yjdwbj/at85-rda5807m).
+ * Copyright (c) 2021 Liu Chun Yang
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ ********************************************************************************/
 
 // https://exploreembedded.com/wiki/NEC_IR_Remote_Control_Interface_with_8051
 // https://techdocs.altium.com/display/FPGA/NEC+Infrared+Transmission+Protocol
 // https://circuitdigest.com/microcontroller-projects/build-your-own-ir-remote-decoder-using-tsop-and-pic-microcontroller
 
 static volatile bool repeatCode = false;
+static volatile bool _toggleMute = false;
 
 // 4Byte of IR data,
 // LSB first, 1 start bit + 16 bit address (or 8 bit address and 8 bit inverted address) + 8 bit command + 8 bit inverted command + 1 stop bit.
@@ -19,9 +40,8 @@ static volatile IRCaptureState captureState = WAIT_STATE;
 
 #define LCD_BUFFER_SIZE 16
 uint8_t lcd_buffer[LCD_BUFFER_SIZE];
-
-struct IR_data IRData;
-uint8_t *irdata = &IRData;
+uint8_t irdata[4] = {0, 0, 0, 0};
+IR_data *IRData = irdata;
 
 /**
  * Table 10-1. Reset and Interrupt Vectors
@@ -48,11 +68,11 @@ uint8_t *irdata = &IRData;
 */
 
 void ir_bus_init(void) {
-    // SCL_PIN_HIGH();
-    SREG |= _BV(7);
+    // DDRB &= ~_BV(PB2); //   IR data pin ,set input
     TCCR0A = 0;
+    TCCR0B = 0;
     MCUCR |= _BV(ISC01); // The falling edge of INT0 generates an interrupt request.
-    GIMSK |= _BV(INT0);  // External Interrupt Request 0
+    GIMSK |= _BV(INT0);  // External Interrupt Request 0, must give +5v power.
 }
 
 static uint8_t check_low_time(bool isLeading) {
@@ -107,7 +127,6 @@ ISR(INT0_vect) {
         } else if (countNum >= 32 && countNum <= 36) {
             // check it's valid 4.5ms space, 32 * 128us = 4.096ms, 36 * 128us = 4.608ms
             captureState = DATA_STATE;
-            repeatCode = false;
             bufferIndex = 0;
         }
         break;
@@ -150,38 +169,61 @@ ISR(INT0_vect) {
 }
 
 bool ir_data_ready(void) {
-    if(bufferState == BUF_READY)
-    {
-        sprintf(lcd_buffer, "%d", IRData.cmd);
-        cli();
-        oled_p8x16str(0, 4, lcd_buffer);
-        memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
-        switch (IRData.cmd) {
+    if (bufferState != BUF_NOT_READY) {
+        cli(); // Disable INT0, prepare to LCD show string.
+        oled_clear();
+        switch (IRData->cmd) {
         case 0xfa05:
-            seek_up(true);
+            seek_up();
             break;
-        case 0xfa02:
-            seek_down(true);
+        case 0xfd02:
+            seek_down();
             break;
         case 0xe11e:
-            set_volume(get_volume() + 1);
+            volume_up();
             break;
         case 0xf50a:
-            set_volume(get_volume() - 1);
+            volume_down();
+            break;
+        case 0xe916:
+            toggle_mute();
+            break;
+        case 0xab54:
+            shift_band();
+            break;
+        case 0xf30c:
+            shift_space();
+            break;
+        case 0xb24d:
+            toggle_power();
             break;
         default:
             break;
         }
-        ir_set_standby();
+        if (has_poweroff()) {
+            oled_clear();
+        } else {
+            show_radio_info();
+        }
+        sei();
+        bufferIndex = 0;
+        bufferState = BUF_NOT_READY;
+        captureState = WAIT_STATE;
+        repeatCode = false;
     }
-    return bufferState;
 }
 
-void ir_set_standby(void)
-{
-    bufferIndex = 0;
-    captureState = WAIT_STATE;
-    bufferState = BUF_NOT_READY;
-    repeatCode = false;
-    sei();
+void show_radio_info(void) {
+    sprintf(lcd_buffer, "cmd:%x", IRData->cmd);
+    oled_p8x16str(0, 0, lcd_buffer);
+    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+    sprintf(lcd_buffer, "vol:%d,space:%d", (uint8_t)get_volume(), (uint8_t)get_space());
+    oled_p8x16str(0, 4, lcd_buffer);
+    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+    sprintf(lcd_buffer, "mute:%c rssi:%u", get_mute() ? 't' : 'f', (uint8_t)get_rssi());
+    oled_p8x16str(0, 6, lcd_buffer);
+    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
+    sprintf(lcd_buffer, "ch:%d,band:%d", (uint16_t)get_frequency(), (uint8_t)get_band());
+    oled_p8x16str(0, 2, lcd_buffer);
+    memset(lcd_buffer, 0, LCD_BUFFER_SIZE);
 }
